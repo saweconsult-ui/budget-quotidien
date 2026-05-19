@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Quotidien</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.6rem; }
+    header span { font-size: 0.9rem; opacity: 0.85; }
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 2px solid #e2e8f0;
+      padding: 0 30px;
+    }
+    .tab {
+      padding: 14px 24px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #718096;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab.active { color: #667eea; border-bottom-color: #667eea; }
+    .tab:hover { color: #667eea; }
+    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Formulaire */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #4a5568; }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .form-row input, .form-row select, .form-row textarea {
+      flex: 1;
+      min-width: 140px;
+      padding: 10px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+      border-color: #667eea;
+    }
+    .form-row textarea { resize: vertical; min-height: 60px; }
+    .btn {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #667eea; color: white; }
+    .btn-danger { background: #fc8181; color: white; font-size: 0.8rem; padding: 5px 10px; }
+
+    /* Résumé */
+    .summary {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .summary-box {
+      flex: 1;
+      min-width: 160px;
+      background: white;
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      text-align: center;
+    }
+    .summary-box .label { font-size: 0.8rem; color: #a0aec0; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary-box .amount { font-size: 1.5rem; font-weight: 700; }
+    .income .amount { color: #48bb78; }
+    .expense .amount { color: #fc8181; }
+    .balance .amount { color: #667eea; }
+
+    /* Liste */
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .list-header h2 { font-size: 1.05rem; color: #4a5568; }
+    .filter-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .filter-row input, .filter-row select {
+      padding: 8px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #a0aec0;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    td { padding: 11px 12px; border-bottom: 1px solid #f0f4f8; font-size: 0.93rem; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbff; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .badge-income { background: #c6f6d5; color: #276749; }
+    .badge-expense { background: #fed7d7; color: #9b2c2c; }
+    .empty { text-align: center; color: #a0aec0; padding: 30px; font-style: italic; }
+
+    /* Recettes */
+    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .recipe-card {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      position: relative;
+    }
+    .recipe-card h3 { font-size: 1rem; margin-bottom: 6px; color: #2d3748; }
+    .recipe-card .meta { font-size: 0.8rem; color: #a0aec0; margin-bottom: 8px; }
+    .recipe-card p { font-size: 0.88rem; color: #718096; line-height: 1.5; }
+    .recipe-card .delete-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+    }
+    .category-tag {
+      display: inline-block;
+      background: #ebf4ff;
+      color: #3182ce;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Budget Quotidien</h1>
+  <span id="today-date"></span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('finances')">Finances</div>
+  <div class="tab" onclick="switchTab('recettes')">Recettes</div>
+</div>
+
+<!-- FINANCES -->
+<div id="panel-finances" class="panel active">
+  <div class="container">
+    <div class="summary">
+      <div class="summary-box income">
+        <div class="label">Recettes du mois</div>
+        <div class="amount" id="total-income">0,00 €</div>
+      </div>
+      <div class="summary-box expense">
+        <div class="label">Dépenses du mois</div>
+        <div class="amount" id="total-expense">0,00 €</div>
+      </div>
+      <div class="summary-box balance">
+        <div class="label">Solde</div>
+        <div class="amount" id="balance">0,00 €</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Ajouter une transaction</h2>
+      <div class="form-row">
+        <input type="date" id="tx-date">
+        <select id="tx-type">
+          <option value="income">Recette</option>
+          <option value="expense">Dépense</option>
+        </select>
+        <input type="text" id="tx-label" placeholder="Description">
+      </div>
+      <div class="form-row">
+        <select id="tx-category">
+          <option value="Alimentation">Alimentation</option>
+          <option value="Logement">Logement</option>
+          <option value="Transport">Transport</option>
+          <option value="Santé">Santé</option>
+          <option value="Loisirs">Loisirs</option>
+          <option value="Salaire">Salaire</option>
+          <option value="Autre">Autre</option>
+        </select>
+        <input type="number" id="tx-amount" placeholder="Montant (€)" min="0" step="0.01">
+        <button class="btn btn-primary" onclick="addTransaction()">Ajouter</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="list-header">
+        <h2>Historique</h2>
+      </div>
+      <div class="filter-row">
+        <input type="month" id="filter-month">
+        <select id="filter-type" onchange="renderTransactions()">
+          <option value="">Tout</option>
+          <option value="income">Recettes</option>
+          <option value="expense">Dépenses</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Catégorie</th>
+            <th>Type</th>
+            <th>Montant</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tx-list"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- RECETTES DE CUISINE -->
+<div id="panel-recettes" class="panel">
+  <div class="container">
+    <div class="card">
+      <h2>Ajouter une recette</h2>
+      <div class="form-row">
+        <input type="text" id="rec-name" placeholder="Nom de la recette">
+        <select id="rec-category">
+          <option value="Entrée">Entrée</option>
+          <option value="Plat">Plat principal</option>
+          <option value="Dessert">Dessert</option>
+          <option value="Boisson">Boisson</option>
+          <option value="Snack">Snack</option>
+        </select>
+        <input type="text" id="rec-duration" placeholder="Durée (ex: 30 min)">
+      </div>
+      <div class="form-row">
+        <textarea id="rec-ingredients" placeholder="Ingrédients (un par ligne)"></textarea>
+        <textarea id="rec-steps" placeholder="Étapes de préparation"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="addRecipe()">Enregistrer la recette</button>
+    </div>
+
+    <div class="list-header">
+      <h2>Mes recettes (<span id="recipe-count">0</span>)</h2>
+    </div>
+    <div class="filter-row">
+      <input type="text" id="rec-search" placeholder="Rechercher..." oninput="renderRecipes()">
+      <select id="rec-filter-cat" onchange="renderRecipes()">
+        <option value="">Toutes catégories</option>
+        <option value="Entrée">Entrée</option>
+        <option value="Plat">Plat principal</option>
+        <option value="Dessert">Dessert</option>
+        <option value="Boisson">Boisson</option>
+        <option value="Snack">Snack</option>
+      </select>
+    </div>
+    <div class="recipe-grid" id="recipe-list"></div>
+  </div>
+</div>
+
+<script>
+  // --- Init ---
+  const todayStr = new Date().toISOString().slice(0,10);
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('fr-BE', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  document.getElementById('tx-date').value = todayStr;
+  document.getElementById('filter-month').value = todayStr.slice(0,7);
+  document.getElementById('filter-month').addEventListener('change', renderTransactions);
+
+  // --- Tabs ---
+  function switchTab(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // --- Transactions ---
+  function getTransactions() { return JSON.parse(localStorage.getItem('transactions') || '[]'); }
+  function saveTransactions(data) { localStorage.setItem('transactions', JSON.stringify(data)); }
+
+  function addTransaction() {
+    const date = document.getElementById('tx-date').value;
+    const type = document.getElementById('tx-type').value;
+    const label = document.getElementById('tx-label').value.trim();
+    const category = document.getElementById('tx-category').value;
+    const amount = parseFloat(document.getElementById('tx-amount').value);
+
+    if (!date || !label || isNaN(amount) || amount <= 0) {
+      alert('Veuillez remplir tous les champs correctement.');
+      return;
+    }
+    const tx = { id: Date.now(), date, type, label, category, amount };
+    const data = getTransactions();
+    data.unshift(tx);
+    saveTransactions(data);
+    document.getElementById('tx-label').value = '';
+    document.getElementById('tx-amount').value = '';
+    renderTransactions();
+  }
+
+  function deleteTransaction(id) {
+    if (!confirm('Supprimer cette transaction ?')) return;
+    saveTransactions(getTransactions().filter(t => t.id !== id));
+    renderTransactions();
+  }
+
+  function renderTransactions() {
+    const month = document.getElementById('filter-month').value;
+    const typeFilter = document.getElementById('filter-type').value;
+    let data = getTransactions().filter(t => t.date.startsWith(month));
+    if (typeFilter) data = data.filter(t => t.type === typeFilter);
+
+    const allMonth = getTransactions().filter(t => t.date.startsWith(month));
+    const income = allMonth.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expense = allMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    document.getElementById('total-income').textContent = fmt(income);
+    document.getElementById('total-expense').textContent = fmt(expense);
+    const bal = income - expense;
+    const balEl = document.getElementById('balance');
+    balEl.textContent = fmt(bal);
+    balEl.style.color = bal >= 0 ? '#48bb78' : '#fc8181';
+
+    const tbody = document.getElementById('tx-list');
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">Aucune transaction pour cette période.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(t => `
+      <tr>
+        <td>${formatDate(t.date)}</td>
+        <td>${escHtml(t.label)}</td>
+        <td>${t.category}</td>
+        <td><span class="badge badge-${t.type}">${t.type === 'income' ? 'Recette' : 'Dépense'}</span></td>
+        <td style="font-weight:600; color:${t.type === 'income' ? '#48bb78' : '#fc8181'}">
+          ${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}
+        </td>
+        <td><button class="btn btn-danger" onclick="deleteTransaction(${t.id})">Supprimer</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function fmt(n) { return n.toLocaleString('fr-BE', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' €'; }
+  function formatDate(s) { return new Date(s + 'T00:00:00').toLocaleDateString('fr-BE'); }
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // --- Recettes de cuisine ---
+  function getRecipes() { return JSON.parse(localStorage.getItem('recipes') || '[]'); }
+  function saveRecipes(data) { localStorage.setItem('recipes', JSON.stringify(data)); }
+
+  function addRecipe() {
+    const name = document.getElementById('rec-name').value.trim();
+    const category = document.getElementById('rec-category').value;
+    const duration = document.getElementById('rec-duration').value.trim();
+    const ingredients = document.getElementById('rec-ingredients').value.trim();
+    const steps = document.getElementById('rec-steps').value.trim();
+
+    if (!name || !ingredients) {
+      alert('Veuillez au minimum indiquer le nom et les ingrédients.');
+      return;
+    }
+    const recipe = { id: Date.now(), name, category, duration, ingredients, steps, date: todayStr };
+    const data = getRecipes();
+    data.unshift(recipe);
+    saveRecipes(data);
+    document.getElementById('rec-name').value = '';
+    document.getElementById('rec-duration').value = '';
+    document.getElementById('rec-ingredients').value = '';
+    document.getElementById('rec-steps').value = '';
+    renderRecipes();
+  }
+
+  function deleteRecipe(id) {
+    if (!confirm('Supprimer cette recette ?')) return;
+    saveRecipes(getRecipes().filter(r => r.id !== id));
+    renderRecipes();
+  }
+
+  function renderRecipes() {
+    const search = document.getElementById('rec-search').value.toLowerCase();
+    const catFilter = document.getElementById('rec-filter-cat').value;
+    let data = getRecipes();
+    if (catFilter) data = data.filter(r => r.category === catFilter);
+    if (search) data = data.filter(r => r.name.toLowerCase().includes(search) || r.ingredients.toLowerCase().includes(search));
+
+    document.getElementById('recipe-count').textContent = getRecipes().length;
+    const grid = document.getElementById('recipe-list');
+    if (data.length === 0) {
+      grid.innerHTML = '<p class="empty" style="grid-column:1/-1">Aucune recette enregistrée.</p>';
+      return;
+    }
+    grid.innerHTML = data.map(r => `
+      <div class="recipe-card">
+        <button class="btn btn-danger delete-btn" onclick="deleteRecipe(${r.id})">✕</button>
+        <span class="category-tag">${r.category}</span>
+        <h3>${escHtml(r.name)}</h3>
+        <div class="meta">${r.duration ? '⏱ ' + escHtml(r.duration) + ' · ' : ''}Ajouté le ${formatDate(r.date)}</div>
+        <p><strong>Ingrédients :</strong><br>${escHtml(r.ingredients).replace(/\n/g,'<br>')}</p>
+        ${r.steps ? `<p style="margin-top:8px"><strong>Préparation :</strong><br>${escHtml(r.steps).replace(/\n/g,'<br>')}</p>` : ''}
+      </div>
+    `).join('');
+  }
+
+  // Init render
+  renderTransactions();
+  renderRecipes();
+</script>
+</body>
+</html>
